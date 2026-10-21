@@ -71,6 +71,41 @@ def test_model_docs_extraction():
     assert MyModel.model_fields['g'].description == 'G docs'
 
 
+def test_model_docs_ignore_nested_scopes():
+    class Outer(BaseModel):
+        model_config = ConfigDict(
+            use_attribute_docstrings=True,
+        )
+
+        x: int
+        """Outer docs"""
+
+        inner: 'Inner'
+
+        class Inner(BaseModel):
+            model_config = ConfigDict(
+                use_attribute_docstrings=True,
+            )
+
+            x: str
+            """Inner docs"""
+
+        def method(self):
+            x: int = 0
+            """Method docs"""
+            return x
+
+        async def async_method(self):
+            x: int = 0
+            """Async method docs"""
+            return x
+
+    assert Outer.model_fields['x'].description == 'Outer docs'
+    assert Outer.model_fields['inner'].annotation is Outer.Inner
+    assert Outer.Inner.model_fields['x'].description == 'Inner docs'
+    assert Outer.model_json_schema()['properties']['x']['description'] == 'Outer docs'
+
+
 def test_model_docs_duplicate_class():
     """Ensure source parsing is working correctly when using frames."""
 

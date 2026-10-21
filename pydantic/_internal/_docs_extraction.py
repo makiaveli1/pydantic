@@ -16,11 +16,26 @@ class DocstringVisitor(ast.NodeVisitor):
         self.target: str | None = None
         self.attrs: dict[str, str] = {}
         self.previous_node_type: type[ast.AST] | None = None
+        self.class_seen: bool = False
 
     def visit(self, node: ast.AST) -> Any:
         node_result = super().visit(node)
         self.previous_node_type = type(node)
         return node_result
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> Any:
+        if self.class_seen:
+            return
+        self.class_seen = True
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
+        if not self.class_seen:
+            self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> Any:
+        if not self.class_seen:
+            self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> Any:
         if isinstance(node.target, ast.Name):
